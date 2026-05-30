@@ -349,3 +349,60 @@ the semantics in §3, §6, §7, §8, and exposes the `core` node from §5 with
 all eleven surfaces.
 
 §4.5 endpoints are optional for Core implementations.
+
+## 11. Node SDK Quick-Start
+
+The reference Python SDK (`node_sdk`) implements the §10 conformance points
+so a node author only writes handlers. The `MeshNode` class registers with
+Core, streams `deliver` events, signs every outbound envelope, and routes
+each delivery to the matching handler.
+
+A node's surfaces are declared in the manifest (§8), not in code — Core
+returns the authorized surface set at registration and `MeshNode` populates
+`node.surfaces` / `node.relationships` from it. In code you bind one async
+handler per surface with `node.on(surface_name, handler)`.
+
+```python
+import asyncio
+import os
+from node_sdk import MeshNode, MeshDeny
+
+node = MeshNode(
+    node_id="tasks",
+    secret=os.environ["TASKS_SECRET"],
+    core_url="http://127.0.0.1:8000",
+)
+
+# Handle an inbound envelope for the `list` surface (declared in the manifest).
+async def list_tasks(env: dict) -> dict:
+    # `env` is the full invocation envelope; the request body is env["payload"].
+    query = env["payload"].get("query")
+    if query == "forbidden":
+        raise MeshDeny("not_allowed", query=query)   # -> kind="error" envelope
+    return {"tasks": [...]}                            # dict -> kind="response"
+
+node.on("list", list_tasks)
+
+async def main() -> None:
+    await node.start()                 # connect() + serve(): register + open SSE stream
+    # Call another node's surface; returns the response payload.
+    result = await node.invoke("news_feeds.recent", {"limit": 5})
+    print(result)
+    try:
+        await asyncio.Event().wait()   # run until cancelled
+    finally:
+        await node.stop()              # cancel stream + dispatch tasks, close HTTP
+
+asyncio.run(main())
+```
+
+Handler return-value contract (enforced by `MeshNode._dispatch`):
+
+- return a `dict` → sent as a `response` envelope.
+- return `None` → no response sent (intended for `fire_and_forget` inboxes).
+- raise `MeshDeny(reason, **details)` → sent as an `error` envelope.
+- any other exception → caught and sent as an `error` envelope with
+  `reason="handler_exception"`.
+
+Use `node.invoke(target_surface, payload, wait=False)` for `fire_and_forget`
+calls; Core returns `202` and `invoke` resolves to `{"status": "accepted", ...}`.
