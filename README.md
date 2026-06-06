@@ -1,4 +1,6 @@
-# RAVEN Mesh
+# Lattice
+
+*(protocol layer — formerly RAVEN Mesh)*
 
 A small protocol where every participant — human, agent, tool, device, runtime — is a uniformly-modeled **node** exposing typed **surfaces**, and every interaction crosses a declared **relationship** mediated by a thin **Core**. Core owns identity, routing, and audit. Nothing else. Memory, scheduling, approvals, dashboards — all of those are themselves nodes.
 
