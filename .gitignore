@@ -23,12 +23,4 @@ venv/
 nodes/cron_node/data/*.json
 !nodes/cron_node/data/.gitkeep
 
-# Worker experiment build artifacts
-experiments/rust_mesh/target/
-experiments/nats_pivot/.venv/
-experiments/*/__pycache__/
-experiments/go_mesh/bin/
-experiments/elixir_mesh/mesh/_build/
-experiments/elixir_mesh/mesh/deps/
-experiments/nats_pivot/run_logs/
 nodes/kanban_node/data/
